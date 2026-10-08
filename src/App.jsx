@@ -6,6 +6,7 @@ function App() {
   const [servico, setServico] = useState("");
   const [usuario, setUsuario] = useState("");
 const [senha, setSenha] = useState("");
+const [modoCadastro, setModoCadastro] = useState(false);
 const [logado, setLogado] = useState(() => {
    return false;
 });
@@ -25,10 +26,7 @@ const [proximoNumero, setProximoNumero] = useState(() => {
   const salvo = localStorage.getItem("proximo-numero");
   return salvo ? Number(salvo) : 1;
 });
- const [passagens, setPassagens] = useState(() => {
-  const salvas = localStorage.getItem("passagens-turno");
-  return salvas ? JSON.parse(salvas) : [];
-});
+ const [passagens, setPassagens] = useState([]);
 const [historico, setHistorico] = useState([]);
 useEffect(() => {
   supabase.auth.getSession().then(({ data: { session } }) => {
@@ -36,6 +34,29 @@ useEffect(() => {
   });
 }, []);
 useEffect(() => {
+  async function cadastrarUsuario() {
+    alert("Estou tentando criar o cadastro no Supabase!");
+  if (!usuario.trim() || !senha.trim()) {
+    alert("Digite seu e-mail e sua senha.");
+    return;
+  }
+alert("Vou enviar o cadastro para o Supabase.");
+  const { error } = await supabase.auth.signUp({
+    email: usuario,
+    password: senha,
+  });
+if (error) {
+  alert("ERRO DO SUPABASE: " + error.message);
+  return;
+}
+  if (error) {
+    alert("Erro ao criar cadastro: " + error.message);
+    return;
+  }
+
+  alert("Cadastro criado com sucesso!");
+  setModoCadastro(false);
+}
   async function carregarDados() {
     const { data: dadosPassagens, error: erroPassagens } = await supabase
       .from("passagens")
@@ -68,9 +89,7 @@ useEffect(() => {
 const [pesquisa, setPesquisa] = useState("");
 const [filtroStatus, setFiltroStatus] = useState("Todos");
 
-  useEffect(() => {
-    localStorage.setItem("passagens-turno", JSON.stringify(passagens));
-  }, [passagens]);
+  
   const passagensFiltradas = passagens.filter((passagem) =>
   passagem.servico.toLowerCase().includes(pesquisa.toLowerCase()) &&
   (filtroStatus === "Todos" || passagem.status === filtroStatus)
@@ -205,7 +224,7 @@ localStorage.setItem("proximo-numero", String(proximoNumero + 1));
     setFoto(null);
 setAudio(null);
   }
-  if (!logado) {
+   if (!logado) {
   return (
     <div
       style={{
@@ -217,7 +236,9 @@ setAudio(null);
         boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
       }}
     >
-      <h2 style={{ textAlign: "center" }}>Login</h2>
+     <h2 style={{ textAlign: "center" }}>
+  {modoCadastro ? "Criar conta" : "Login"}
+</h2>
 
       <label>Usuário</label>
       <input
@@ -251,6 +272,11 @@ setAudio(null);
 
       <button
         onClick={async () => {
+  if (modoCadastro) {
+  alert("Entrou no botão de criar cadastro!");
+  await cadastrarUsuario();
+  return;
+}
   const { error } = await supabase.auth.signInWithPassword({
     email: usuario,
     password: senha,
@@ -274,8 +300,26 @@ setAudio(null);
           cursor: "pointer",
         }}
       >
-        Entrar
+      {modoCadastro ? "Criar conta" : "Entrar"}
       </button>
+      <button
+  onClick={() => {
+  alert("Botão Criar conta clicado!");
+  setModoCadastro(!modoCadastro);
+}}
+  style={{
+    width: "100%",
+    padding: "10px",
+    marginTop: "10px",
+    backgroundColor: "#27ae60",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+  }}
+>
+  {modoCadastro ? "Voltar para login" : "Criar conta"}
+</button>
     </div>
   );
 }
