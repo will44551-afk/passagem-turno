@@ -34,29 +34,35 @@ useEffect(() => {
   });
 }, []);
 useEffect(() => {
-  async function cadastrarUsuario() {
-    alert("Estou tentando criar o cadastro no Supabase!");
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    setLogado(!!session);
+  });
+}, []);
+
+async function cadastrarUsuario() {
+  alert("A função de cadastro foi iniciada!");
   if (!usuario.trim() || !senha.trim()) {
     alert("Digite seu e-mail e sua senha.");
     return;
   }
-alert("Vou enviar o cadastro para o Supabase.");
+
   const { error } = await supabase.auth.signUp({
-    email: usuario,
+    email: usuario.trim(),
     password: senha,
   });
-if (error) {
-  alert("ERRO DO SUPABASE: " + error.message);
-  return;
-}
+
   if (error) {
-    alert("Erro ao criar cadastro: " + error.message);
+    alert("ERRO DO SUPABASE: " + error.message);
     return;
   }
 
-  alert("Cadastro criado com sucesso!");
+  alert("Cadastro enviado! Verifique seu e-mail para confirmar a conta.");
   setModoCadastro(false);
+  setUsuario("");
+  setSenha("");
 }
+
+useEffect(() => {
   async function carregarDados() {
     const { data: dadosPassagens, error: erroPassagens } = await supabase
       .from("passagens")
@@ -68,7 +74,7 @@ if (error) {
       return;
     }
 
-    setPassagens(dadosPassagens);
+    setPassagens(dadosPassagens || []);
 
     const { data: dadosHistorico, error: erroHistorico } = await supabase
       .from("historico_passagens")
@@ -80,11 +86,12 @@ if (error) {
       return;
     }
 
-    setHistorico(dadosHistorico);
+    setHistorico(dadosHistorico || []);
   }
 
   carregarDados();
 }, []);
+
 
 const [pesquisa, setPesquisa] = useState("");
 const [filtroStatus, setFiltroStatus] = useState("Todos");
@@ -752,6 +759,56 @@ setGravandoVideo(true);
     📋 Histórico de alterações
   </summary>
 <div className="nao-imprimir">
+<button
+  type="button"
+  onClick={async () => {
+    const confirmar = window.confirm(
+      "Tem certeza de que deseja apagar todo o histórico de alterações?"
+    );
+
+    if (!confirmar) return;
+
+    const { data: apagados, error } = await supabase
+  .from("historico_passagens")
+  .delete()
+  .not("id", "is", null)
+  .select("id");
+
+if (error) {
+  console.error("Erro ao apagar histórico:", error);
+  alert("Erro ao apagar: " + error.message);
+  return;
+}
+
+if (!apagados || apagados.length === 0) {
+  alert("Nenhum registro foi apagado. Vamos verificar as permissões do Supabase.");
+  return;
+}
+
+setHistorico([]);
+alert(`Histórico apagado: ${apagados.length} registro(s).`);
+
+    if (error) {
+      console.error("Erro ao apagar histórico:", error);
+      alert("Não foi possível apagar o histórico.");
+      return;
+    }
+
+    setHistorico([]);
+    alert("Histórico apagado com sucesso!");
+  }}
+  style={{
+    padding: "10px 14px",
+    marginBottom: "12px",
+    backgroundColor: "#dc2626",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer"
+  }}
+>
+  🗑️ Apagar histórico
+</button>
   {historico.length === 0 ? (
     <p>Nenhuma alteração registrada.</p>
   ) : (
